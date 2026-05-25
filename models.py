@@ -12,6 +12,7 @@ class Usuario(UserMixin, db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     usuario = db.Column(db.String(80), unique=True, nullable=False)
+    nome = db.Column(db.String(120), nullable=False, default="Administrador")
     senha_hash = db.Column(db.String(255), nullable=False)
     criado_em = db.Column(db.DateTime, default=datetime.utcnow)
 

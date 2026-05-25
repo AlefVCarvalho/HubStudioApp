@@ -1,0 +1,74 @@
+<div class="row g-3">
+    <div class="col-md-6">
+        <label class="form-label fw-semibold">Nome *</label>
+        <input
+            type="text"
+            name="nome"
+            class="form-control"
+            value="{{ cliente_form.nome if cliente_form else '' }}"
+            required
+        >
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label fw-semibold">CNPJ</label>
+        <input
+            type="text"
+            name="cnpj"
+            class="form-control"
+            value="{{ cliente_form.cnpj if cliente_form and cliente_form.cnpj else '' }}"
+        >
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label fw-semibold">Telefone</label>
+        <input
+            type="text"
+            name="telefone"
+            class="form-control"
+            value="{{ cliente_form.telefone if cliente_form and cliente_form.telefone else '' }}"
+        >
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label fw-semibold">E-mail</label>
+        <input
+            type="email"
+            name="email"
+            class="form-control"
+            value="{{ cliente_form.email if cliente_form and cliente_form.email else '' }}"
+        >
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label fw-semibold">Responsável</label>
+        <input
+            type="text"
+            name="responsavel"
+            class="form-control"
+            value="{{ cliente_form.responsavel if cliente_form and cliente_form.responsavel else '' }}"
+        >
+    </div>
+
+    {% if mostrar_status %}
+        <div class="col-md-6 d-flex align-items-end">
+            <div class="form-check mb-2">
+                <input
+                    class="form-check-input"
+                    type="checkbox"
+                    name="ativo"
+                    id="ativoCliente{{ cliente_form.id }}"
+                    {% if cliente_form and cliente_form.ativo %}checked{% endif %}
+                >
+                <label class="form-check-label fw-semibold" for="ativoCliente{{ cliente_form.id }}">
+                    Cliente ativo
+                </label>
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="col-12">
+        <label class="form-label fw-semibold">Observações</label>
+        <textarea name="observacoes" class="form-control" rows="3">{{ cliente_form.observacoes if cliente_form and cliente_form.observacoes else '' }}</textarea>
+    </div>
+</div>

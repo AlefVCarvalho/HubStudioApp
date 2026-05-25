@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
 
-from models import db, Cliente
+from models import db, Cliente, Venda
 
 
 clientes_bp = Blueprint("clientes", __name__, url_prefix="/clientes")
@@ -24,10 +24,29 @@ def clientes():
 
     lista_clientes = query.order_by(Cliente.nome.asc()).all()
 
+    cliente_ids = [cliente.id for cliente in lista_clientes]
+
+    vendas_por_cliente = {}
+
+    if cliente_ids:
+        vendas = (
+            Venda.query
+            .filter(Venda.cliente_id.in_(cliente_ids))
+            .order_by(Venda.data.desc(), Venda.id.desc())
+            .all()
+        )
+
+        for venda in vendas:
+            if venda.cliente_id not in vendas_por_cliente:
+                vendas_por_cliente[venda.cliente_id] = []
+
+            vendas_por_cliente[venda.cliente_id].append(venda)
+
     return render_template(
-        "clientes.html",
+        "clientes/index.html",
         clientes=lista_clientes,
-        busca=busca
+        busca=busca,
+        vendas_por_cliente=vendas_por_cliente
     )
 
 
