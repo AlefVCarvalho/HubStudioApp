@@ -1,0 +1,655 @@
+{% extends "base.html" %}
+
+{% block title %}Vendas | HubStudio App{% endblock %}
+
+{% block page_title %}Vendas{% endblock %}
+
+{% block page_subtitle %}
+Controle de receitas, despesas, serviços vendidos e movimentações mensais.
+{% endblock %}
+
+{% block content %}
+
+<div class="row g-4 mb-4">
+
+    <div class="col-md-4">
+        <div class="content-card">
+            <p class="text-muted mb-1">Receitas filtradas</p>
+            <h3 class="fw-bold mb-0">R$ {{ "%.2f"|format(total_receitas or 0) }}</h3>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="content-card">
+            <p class="text-muted mb-1">Despesas filtradas</p>
+            <h3 class="fw-bold mb-0">R$ {{ "%.2f"|format(total_despesas or 0) }}</h3>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="content-card">
+            <p class="text-muted mb-1">Saldo filtrado</p>
+            <h3 class="fw-bold mb-0">R$ {{ "%.2f"|format(saldo or 0) }}</h3>
+        </div>
+    </div>
+
+</div>
+
+<div class="content-card mb-4">
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+        <div>
+            <h5 class="fw-bold mb-1">Lançamentos</h5>
+            <p class="text-muted mb-0">
+                Escolha entre receitas e despesas para registrar cada movimentação.
+            </p>
+        </div>
+    </div>
+
+    <form method="GET" action="{{ url_for('vendas.vendas') }}" class="row g-2 mb-4">
+        <div class="col-md-8">
+            <input
+                type="text"
+                name="busca"
+                class="form-control"
+                placeholder="Buscar por descrição ou forma de pagamento"
+                value="{{ busca or '' }}"
+            >
+        </div>
+
+        <div class="col-md-2">
+            <select name="status" class="form-select">
+                <option value="">Todos os status</option>
+                <option value="pago" {% if status == "pago" %}selected{% endif %}>Pago</option>
+                <option value="pendente" {% if status == "pendente" %}selected{% endif %}>Pendente</option>
+                <option value="cancelado" {% if status == "cancelado" %}selected{% endif %}>Cancelado</option>
+            </select>
+        </div>
+
+        <div class="col-md-2 d-grid">
+            <button type="submit" class="btn btn-outline-app">
+                <i class="bi bi-search me-1"></i>
+                Filtrar
+            </button>
+        </div>
+    </form>
+
+    <ul class="nav nav-tabs mb-4" id="vendasTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button
+                class="nav-link active"
+                id="receitas-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#receitas-pane"
+                type="button"
+                role="tab"
+                aria-controls="receitas-pane"
+                aria-selected="true"
+            >
+                Receitas
+            </button>
+        </li>
+
+        <li class="nav-item" role="presentation">
+            <button
+                class="nav-link"
+                id="despesas-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#despesas-pane"
+                type="button"
+                role="tab"
+                aria-controls="despesas-pane"
+                aria-selected="false"
+            >
+                Despesas
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="vendasTabsContent">
+
+        <div class="tab-pane fade show active" id="receitas-pane" role="tabpanel" aria-labelledby="receitas-tab" tabindex="0">
+
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+                <div>
+                    <h6 class="fw-bold mb-1">Receitas</h6>
+                    <p class="text-muted mb-0">Lançamentos de entrada vinculados ou não a clientes e serviços.</p>
+                </div>
+
+                <button class="btn btn-primary-app" data-bs-toggle="modal" data-bs-target="#modalNovaReceita">
+                    <i class="bi bi-plus-circle me-1"></i>
+                    Nova receita
+                </button>
+            </div>
+
+            {% if receitas %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Descrição</th>
+                                <th>Cliente</th>
+                                <th>Serviço</th>
+                                <th>Valor</th>
+                                <th>Status</th>
+                                <th class="text-end">Ações</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for venda in receitas %}
+                                <tr>
+                                    <td>{{ venda.data.strftime("%d/%m/%Y") if venda.data else "-" }}</td>
+
+                                    <td>
+                                        <div class="fw-semibold">{{ venda.descricao }}</div>
+                                    </td>
+
+                                    <td>
+                                        {% if venda.cliente %}
+                                            {{ venda.cliente.nome }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        {% if venda.servico %}
+                                            {{ venda.servico.nome }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+
+                                    <td>R$ {{ "%.2f"|format(venda.valor or 0) }}</td>
+
+                                    <td>
+                                        {% if venda.status == "pago" %}
+                                            <span class="badge-app">Pago</span>
+                                        {% elif venda.status == "pendente" %}
+                                            <span class="badge bg-warning text-dark">Pendente</span>
+                                        {% elif venda.status == "cancelado" %}
+                                            <span class="badge bg-secondary">Cancelado</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ venda.status }}</span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td class="text-end">
+                                        <button
+                                            class="btn btn-sm btn-outline-app"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#modalEditarLancamento{{ venda.id }}"
+                                        >
+                                            <i class="bi bi-pencil-square"></i>
+                                        </button>
+
+                                        <button
+                                            class="btn btn-sm btn-outline-danger rounded-3"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#modalExcluirLancamento{{ venda.id }}"
+                                        >
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-light border mb-0">
+                    Nenhuma receita registrada ainda.
+                </div>
+            {% endif %}
+
+        </div>
+
+        <div class="tab-pane fade" id="despesas-pane" role="tabpanel" aria-labelledby="despesas-tab" tabindex="0">
+
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+                <div>
+                    <h6 class="fw-bold mb-1">Despesas</h6>
+                    <p class="text-muted mb-0">Lançamentos de saída, custos e pagamentos do negócio.</p>
+                </div>
+
+                <button class="btn btn-primary-app" data-bs-toggle="modal" data-bs-target="#modalNovaDespesa">
+                    <i class="bi bi-plus-circle me-1"></i>
+                    Nova despesa
+                </button>
+            </div>
+
+            {% if despesas %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Descrição</th>
+                                <th>Valor</th>
+                                <th>Status</th>
+                                <th class="text-end">Ações</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for venda in despesas %}
+                                <tr>
+                                    <td>{{ venda.data.strftime("%d/%m/%Y") if venda.data else "-" }}</td>
+
+                                    <td>
+                                        <div class="fw-semibold">{{ venda.descricao }}</div>
+                                    </td>
+
+                                    <td>R$ {{ "%.2f"|format(venda.valor or 0) }}</td>
+
+                                    <td>
+                                        {% if venda.status == "pago" %}
+                                            <span class="badge-app">Pago</span>
+                                        {% elif venda.status == "pendente" %}
+                                            <span class="badge bg-warning text-dark">Pendente</span>
+                                        {% elif venda.status == "cancelado" %}
+                                            <span class="badge bg-secondary">Cancelado</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ venda.status }}</span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td class="text-end">
+                                        <button
+                                            class="btn btn-sm btn-outline-app"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#modalEditarLancamento{{ venda.id }}"
+                                        >
+                                            <i class="bi bi-pencil-square"></i>
+                                        </button>
+
+                                        <button
+                                            class="btn btn-sm btn-outline-danger rounded-3"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#modalExcluirLancamento{{ venda.id }}"
+                                        >
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-light border mb-0">
+                    Nenhuma despesa registrada ainda.
+                </div>
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% for venda in receitas %}
+    <div class="modal fade" id="modalEditarLancamento{{ venda.id }}" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content rounded-4">
+                <form method="POST" action="{{ url_for('vendas.editar_lancamento', venda_id=venda.id) }}">
+                    <input type="hidden" name="tipo" value="receita">
+
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-bold">Editar receita</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label class="form-label fw-semibold">Descrição *</label>
+                                <input type="text" name="descricao" class="form-control" value="{{ venda.descricao }}" required>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Valor real R$ *</label>
+                                <input type="number" step="0.01" min="0" name="valor" class="form-control" value="{{ '%.2f'|format(venda.valor or 0) }}" required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Cliente</label>
+                                <select name="cliente_id" class="form-select">
+                                    <option value="">Não vincular</option>
+                                    {% for cliente in clientes %}
+                                        <option value="{{ cliente.id }}" {% if venda.cliente_id == cliente.id %}selected{% endif %}>
+                                            {{ cliente.nome }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Serviço</label>
+                                <select name="servico_id" class="form-select">
+                                    <option value="">Não vincular</option>
+                                    {% for servico in servicos %}
+                                        <option value="{{ servico.id }}" {% if venda.servico_id == servico.id %}selected{% endif %}>
+                                            {{ servico.nome }} - valor médio R$ {{ "%.2f"|format(servico.valor or 0) }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Data *</label>
+                                <input type="date" name="data" class="form-control" value="{{ venda.data.strftime('%Y-%m-%d') if venda.data else '' }}" required>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Status</label>
+                                <select name="status" class="form-select">
+                                    <option value="pago" {% if venda.status == "pago" %}selected{% endif %}>Pago</option>
+                                    <option value="pendente" {% if venda.status == "pendente" %}selected{% endif %}>Pendente</option>
+                                    <option value="cancelado" {% if venda.status == "cancelado" %}selected{% endif %}>Cancelado</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Forma de pagamento</label>
+                                <input type="text" name="forma_pagamento" class="form-control" value="{{ venda.forma_pagamento or '' }}" placeholder="Pix, boleto, cartão, dinheiro...">
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">Observações</label>
+                                <textarea name="observacoes" class="form-control" rows="3">{{ venda.observacoes or '' }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light rounded-3" data-bs-dismiss="modal">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-primary-app">
+                            Salvar alterações
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalExcluirLancamento{{ venda.id }}" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4">
+                <form method="POST" action="{{ url_for('vendas.excluir_lancamento', venda_id=venda.id) }}">
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-bold">Excluir receita</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <p class="mb-0">
+                            Tem certeza que deseja excluir a receita
+                            <strong>{{ venda.descricao }}</strong>?
+                        </p>
+                        <small class="text-muted">
+                            Essa ação não poderá ser desfeita.
+                        </small>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light rounded-3" data-bs-dismiss="modal">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-danger rounded-3">
+                            Excluir
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endfor %}
+
+{% for venda in despesas %}
+    <div class="modal fade" id="modalEditarLancamento{{ venda.id }}" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content rounded-4">
+                <form method="POST" action="{{ url_for('vendas.editar_lancamento', venda_id=venda.id) }}">
+                    <input type="hidden" name="tipo" value="despesa">
+
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-bold">Editar despesa</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label class="form-label fw-semibold">Descrição *</label>
+                                <input type="text" name="descricao" class="form-control" value="{{ venda.descricao }}" required>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Valor R$ *</label>
+                                <input type="number" step="0.01" min="0" name="valor" class="form-control" value="{{ '%.2f'|format(venda.valor or 0) }}" required>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Data *</label>
+                                <input type="date" name="data" class="form-control" value="{{ venda.data.strftime('%Y-%m-%d') if venda.data else '' }}" required>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Status</label>
+                                <select name="status" class="form-select">
+                                    <option value="pago" {% if venda.status == "pago" %}selected{% endif %}>Pago</option>
+                                    <option value="pendente" {% if venda.status == "pendente" %}selected{% endif %}>Pendente</option>
+                                    <option value="cancelado" {% if venda.status == "cancelado" %}selected{% endif %}>Cancelado</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Forma de pagamento</label>
+                                <input type="text" name="forma_pagamento" class="form-control" value="{{ venda.forma_pagamento or '' }}" placeholder="Pix, boleto, cartão, dinheiro...">
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">Observações</label>
+                                <textarea name="observacoes" class="form-control" rows="3">{{ venda.observacoes or '' }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light rounded-3" data-bs-dismiss="modal">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-primary-app">
+                            Salvar alterações
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalExcluirLancamento{{ venda.id }}" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4">
+                <form method="POST" action="{{ url_for('vendas.excluir_lancamento', venda_id=venda.id) }}">
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-bold">Excluir despesa</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <p class="mb-0">
+                            Tem certeza que deseja excluir a despesa
+                            <strong>{{ venda.descricao }}</strong>?
+                        </p>
+                        <small class="text-muted">
+                            Essa ação não poderá ser desfeita.
+                        </small>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light rounded-3" data-bs-dismiss="modal">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-danger rounded-3">
+                            Excluir
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endfor %}
+
+<div class="modal fade" id="modalNovaReceita" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content rounded-4">
+            <form method="POST" action="{{ url_for('vendas.novo_lancamento') }}">
+                <input type="hidden" name="tipo" value="receita">
+
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Nova receita</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold">Descrição *</label>
+                            <input type="text" name="descricao" class="form-control" required placeholder="Ex: Venda de serviço mensal, pacote fechado...">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Valor real R$ *</label>
+                            <input type="number" step="0.01" min="0" name="valor" class="form-control" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Cliente</label>
+                            <select name="cliente_id" class="form-select">
+                                <option value="">Não vincular</option>
+                                {% for cliente in clientes %}
+                                    <option value="{{ cliente.id }}">{{ cliente.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Serviço</label>
+                            <select name="servico_id" class="form-select">
+                                <option value="">Não vincular</option>
+                                {% for servico in servicos %}
+                                    <option value="{{ servico.id }}">
+                                        {{ servico.nome }} - valor médio R$ {{ "%.2f"|format(servico.valor or 0) }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Data *</label>
+                            <input type="date" name="data" class="form-control" required>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Status</label>
+                            <select name="status" class="form-select">
+                                <option value="pago">Pago</option>
+                                <option value="pendente">Pendente</option>
+                                <option value="cancelado">Cancelado</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Forma de pagamento</label>
+                            <input type="text" name="forma_pagamento" class="form-control" placeholder="Pix, boleto, cartão, dinheiro...">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Observações</label>
+                            <textarea name="observacoes" class="form-control" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light rounded-3" data-bs-dismiss="modal">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary-app">
+                        Cadastrar receita
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalNovaDespesa" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content rounded-4">
+            <form method="POST" action="{{ url_for('vendas.novo_lancamento') }}">
+                <input type="hidden" name="tipo" value="despesa">
+
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Nova despesa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold">Descrição *</label>
+                            <input type="text" name="descricao" class="form-control" required placeholder="Ex: Aluguel, internet, fornecedor, imposto...">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Valor R$ *</label>
+                            <input type="number" step="0.01" min="0" name="valor" class="form-control" required>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Data *</label>
+                            <input type="date" name="data" class="form-control" required>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Status</label>
+                            <select name="status" class="form-select">
+                                <option value="pago">Pago</option>
+                                <option value="pendente">Pendente</option>
+                                <option value="cancelado">Cancelado</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Forma de pagamento</label>
+                            <input type="text" name="forma_pagamento" class="form-control" placeholder="Pix, boleto, cartão, dinheiro...">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Observações</label>
+                            <textarea name="observacoes" class="form-control" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light rounded-3" data-bs-dismiss="modal">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary-app">
+                        Cadastrar despesa
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,398 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | HubStudio App{% endblock %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block page_subtitle %}
+Visão geral de vendas, clientes, serviços, gastos e ganhos.
+{% endblock %}
+
+{% block content %}
+
+<div class="row g-4 mb-4">
+
+    <div class="col-md-3">
+        <div class="content-card h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <p class="text-muted mb-1">Receitas do mês</p>
+                    <h3 class="fw-bold mb-0">
+                        R$ {{ "%.2f"|format(receitas_mes or 0) }}
+                    </h3>
+                </div>
+                <div class="dashboard-icon">
+                    <i class="bi bi-graph-up-arrow"></i>
+                </div>
+            </div>
+            <small class="text-muted">Entradas pagas ou pendentes não canceladas.</small>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="content-card h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <p class="text-muted mb-1">Despesas do mês</p>
+                    <h3 class="fw-bold mb-0">
+                        R$ {{ "%.2f"|format(despesas_mes or 0) }}
+                    </h3>
+                </div>
+                <div class="dashboard-icon">
+                    <i class="bi bi-graph-down-arrow"></i>
+                </div>
+            </div>
+            <small class="text-muted">Custos e saídas mensais não canceladas.</small>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="content-card h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <p class="text-muted mb-1">Lucro do mês</p>
+                    <h3 class="fw-bold mb-0">
+                        R$ {{ "%.2f"|format(lucro_mes or 0) }}
+                    </h3>
+                </div>
+                <div class="dashboard-icon">
+                    <i class="bi bi-cash-stack"></i>
+                </div>
+            </div>
+            <small class="text-muted">Receitas menos despesas do mês atual.</small>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="content-card h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <p class="text-muted mb-1">Clientes ativos</p>
+                    <h3 class="fw-bold mb-0">
+                        {{ clientes_ativos }}
+                    </h3>
+                </div>
+                <div class="dashboard-icon">
+                    <i class="bi bi-buildings"></i>
+                </div>
+            </div>
+            <small class="text-muted">{{ servicos_ativos }} serviços ativos cadastrados.</small>
+        </div>
+    </div>
+
+</div>
+
+<div class="row g-4 mb-4">
+
+    <div class="col-lg-8">
+        <div class="content-card h-100">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+                <div>
+                    <h5 class="fw-bold mb-1">Análise mês a mês - {{ ano_atual }}</h5>
+                    <p class="text-muted mb-0">
+                        Comparativo entre ganhos, gastos e lucro.
+                    </p>
+                </div>
+
+                <span class="badge-app">
+                    Ano atual
+                </span>
+            </div>
+
+            <div style="height: 360px;">
+                <canvas id="graficoMensal"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="content-card h-100">
+            <h5 class="fw-bold mb-3">Resumo anual</h5>
+
+            <div class="summary-line">
+                <span>Receitas no ano</span>
+                <strong>R$ {{ "%.2f"|format(total_receitas_ano or 0) }}</strong>
+            </div>
+
+            <div class="summary-line">
+                <span>Despesas no ano</span>
+                <strong>R$ {{ "%.2f"|format(total_despesas_ano or 0) }}</strong>
+            </div>
+
+            <div class="summary-line total">
+                <span>Lucro no ano</span>
+                <strong>R$ {{ "%.2f"|format(lucro_ano or 0) }}</strong>
+            </div>
+
+            <div class="mt-4 p-3 rounded-4" style="background: #ffedf1;">
+                <div class="fw-bold mb-1" style="color: #e90034;">
+                    Insight rápido
+                </div>
+
+                {% if lucro_mes > 0 %}
+                    <p class="mb-0">
+                        O mês atual está positivo. As receitas superam as despesas até o momento.
+                    </p>
+                {% elif lucro_mes < 0 %}
+                    <p class="mb-0">
+                        O mês atual está negativo. As despesas estão maiores que as receitas.
+                    </p>
+                {% else %}
+                    <p class="mb-0">
+                        O mês atual está equilibrado ou ainda sem movimentações suficientes.
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="content-card">
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <div>
+            <h5 class="fw-bold mb-1">Últimos lançamentos</h5>
+            <p class="text-muted mb-0">
+                Movimentações recentes registradas na aba Vendas.
+            </p>
+        </div>
+
+        <a href="{{ url_for('vendas.vendas') }}" class="btn btn-outline-app">
+            Ver vendas
+        </a>
+    </div>
+
+    {% if ultimos_lancamentos %}
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Tipo</th>
+                        <th>Descrição</th>
+                        <th>Cliente</th>
+                        <th>Valor</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for lancamento in ultimos_lancamentos %}
+                        <tr>
+                            <td>
+                                {{ lancamento.data.strftime("%d/%m/%Y") if lancamento.data else "-" }}
+                            </td>
+
+                            <td>
+                                {% if lancamento.tipo == "receita" %}
+                                    <span class="badge bg-success">Receita</span>
+                                {% elif lancamento.tipo == "despesa" %}
+                                    <span class="badge bg-danger">Despesa</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ lancamento.tipo }}</span>
+                                {% endif %}
+                            </td>
+
+                            <td class="fw-semibold">
+                                {{ lancamento.descricao }}
+                            </td>
+
+                            <td>
+                                {% if lancamento.cliente %}
+                                    {{ lancamento.cliente.nome }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                R$ {{ "%.2f"|format(lancamento.valor or 0) }}
+                            </td>
+
+                            <td>
+                                {% if lancamento.status == "pago" %}
+                                    <span class="badge-app">Pago</span>
+                                {% elif lancamento.status == "pendente" %}
+                                    <span class="badge bg-warning text-dark">Pendente</span>
+                                {% elif lancamento.status == "cancelado" %}
+                                    <span class="badge bg-secondary">Cancelado</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ lancamento.status }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    {% else %}
+
+        <div class="alert alert-light border mb-0">
+            Nenhum lançamento registrado ainda. Cadastre receitas ou despesas na aba Vendas para alimentar o dashboard.
+        </div>
+
+    {% endif %}
+
+</div>
+
+<style>
+    .dashboard-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 16px;
+        background: #ffedf1;
+        color: #e90034;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.45rem;
+    }
+
+    .summary-line {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 0;
+        border-bottom: 1px solid #eeeeee;
+    }
+
+    .summary-line span {
+        color: #666666;
+    }
+
+    .summary-line strong {
+        color: #000000;
+    }
+
+    .summary-line.total {
+        border-bottom: none;
+        margin-top: 8px;
+        padding: 18px;
+        border-radius: 16px;
+        background: #000000;
+        color: #ffffff;
+    }
+
+    .summary-line.total span,
+    .summary-line.total strong {
+        color: #ffffff;
+    }
+</style>
+
+{% endblock %}
+
+{% block scripts %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    const mesesLabelsJson = '{{ meses_labels | tojson | safe }}';
+    const receitasPorMesJson = '{{ receitas_por_mes | tojson | safe }}';
+    const despesasPorMesJson = '{{ despesas_por_mes | tojson | safe }}';
+    const lucroPorMesJson = '{{ lucro_por_mes | tojson | safe }}';
+
+    const mesesLabels = JSON.parse(mesesLabelsJson);
+    const receitasPorMes = JSON.parse(receitasPorMesJson);
+    const despesasPorMes = JSON.parse(despesasPorMesJson);
+    const lucroPorMes = JSON.parse(lucroPorMesJson);
+
+    const ctx = document.getElementById("graficoMensal");
+
+    new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: mesesLabels,
+            datasets: [
+                {
+                    label: "Receitas",
+                    data: receitasPorMes,
+                    backgroundColor: "rgba(233, 0, 52, 0.85)",
+                    borderColor: "#e90034",
+                    borderWidth: 1,
+                    borderRadius: 8
+                },
+                {
+                    label: "Despesas",
+                    data: despesasPorMes,
+                    backgroundColor: "rgba(0, 0, 0, 0.75)",
+                    borderColor: "#000000",
+                    borderWidth: 1,
+                    borderRadius: 8
+                },
+                {
+                    label: "Lucro",
+                    data: lucroPorMes,
+                    type: "line",
+                    borderColor: "#e90034",
+                    backgroundColor: "#ffffff",
+                    borderWidth: 3,
+                    tension: 0.35,
+                    pointBackgroundColor: "#ffffff",
+                    pointBorderColor: "#e90034",
+                    pointBorderWidth: 3,
+                    pointRadius: 5
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+
+            plugins: {
+                legend: {
+                    position: "bottom",
+                    labels: {
+                        usePointStyle: true,
+                        padding: 18,
+                        color: "#000000",
+                        font: {
+                            weight: "bold"
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const valor = context.raw || 0;
+                            return context.dataset.label + ": R$ " + valor.toLocaleString("pt-BR", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                            });
+                        }
+                    }
+                }
+            },
+
+            scales: {
+                x: {
+                    ticks: {
+                        color: "#000000",
+                        font: {
+                            weight: "bold"
+                        }
+                    },
+                    grid: {
+                        display: false
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        color: "#000000",
+                        callback: function(value) {
+                            return "R$ " + value.toLocaleString("pt-BR");
+                        }
+                    },
+                    grid: {
+                        color: "rgba(0, 0, 0, 0.08)"
+                    }
+                }
+            }
+        }
+    });
+</script>
+
+{% endblock %}
