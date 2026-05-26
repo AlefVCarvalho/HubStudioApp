@@ -5,6 +5,7 @@ from flask_login import LoginManager, current_user
 from dotenv import load_dotenv
 
 from models import db, Usuario
+from sqlalchemy import text
 
 
 def str_to_bool(value):
@@ -40,12 +41,14 @@ def create_app():
     from routes.auth import auth_bp
     from routes.dashboard import dashboard_bp
     from routes.clientes import clientes_bp
+    from routes.kanban import kanban_bp
     from routes.servicos import servicos_bp
     from routes.vendas import vendas_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(clientes_bp)
+    app.register_blueprint(kanban_bp)
     app.register_blueprint(servicos_bp)
     app.register_blueprint(vendas_bp)
 
@@ -57,6 +60,18 @@ def create_app():
 
     with app.app_context():
         db.create_all()
+        
+        colunas_clientes = db.session.execute(
+            text("PRAGMA table_info(clientes)")
+        ).fetchall()
+
+        nomes_colunas_clientes = [coluna[1] for coluna in colunas_clientes]
+
+        if "status" not in nomes_colunas_clientes:
+            db.session.execute(
+                text("ALTER TABLE clientes ADD COLUMN status VARCHAR(50) NOT NULL DEFAULT '-'")
+            )
+            db.session.commit()
 
         admin_email = os.getenv("ADMIN_EMAIL", "admin@hubstudio.local")
         admin_password = os.getenv("ADMIN_PASSWORD", "admin")

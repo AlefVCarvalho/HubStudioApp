@@ -45,6 +45,9 @@ class Cliente(db.Model):
     responsavel_contato = db.Column(db.String(120), nullable=True)
 
     observacoes = db.Column(db.Text, nullable=True)
+
+    status = db.Column(db.String(50), nullable=False, default="-")
+    
     ativo = db.Column(db.Boolean, default=True)
 
     criado_em = db.Column(db.DateTime, default=datetime.utcnow)

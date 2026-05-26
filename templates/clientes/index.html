@@ -76,8 +76,20 @@ Cadastro, detalhes e vendas relacionadas aos clientes atendidos.
                             <td>
                                 {% if cliente.ativo %}
                                     <span class="badge-app">Ativo</span>
+                                {% elif cliente.status == "-" %}
+                                    <span class="badge bg-secondary">Fora do kanban</span>
+                                {% elif cliente.status == "prospeccao" %}
+                                    <span class="badge bg-light text-dark border">Prospecção</span>
+                                {% elif cliente.status == "contato_feito" %}
+                                    <span class="badge bg-light text-dark border">Contato feito</span>
+                                {% elif cliente.status == "diagnostico" %}
+                                    <span class="badge bg-light text-dark border">Diagnóstico</span>
+                                {% elif cliente.status == "proposta_enviada" %}
+                                    <span class="badge bg-light text-dark border">Proposta enviada</span>
+                                {% elif cliente.status == "negociacao" %}
+                                    <span class="badge bg-light text-dark border">Negociação</span>
                                 {% else %}
-                                    <span class="badge bg-secondary">Inativo</span>
+                                    <span class="badge bg-secondary">{{ cliente.status or "-" }}</span>
                                 {% endif %}
                             </td>
                         </tr>
@@ -136,8 +148,20 @@ Cadastro, detalhes e vendas relacionadas aos clientes atendidos.
                         <div class="text-muted small">
                             {% if cliente.ativo %}
                                 Cliente ativo
+                            {% elif cliente.status == "-" %}
+                                Fora do kanban
+                            {% elif cliente.status == "prospeccao" %}
+                                Prospecção
+                            {% elif cliente.status == "contato_feito" %}
+                                Contato feito
+                            {% elif cliente.status == "diagnostico" %}
+                                Diagnóstico
+                            {% elif cliente.status == "proposta_enviada" %}
+                                Proposta enviada
+                            {% elif cliente.status == "negociacao" %}
+                                Negociação
                             {% else %}
-                                Cliente inativo
+                                {{ cliente.status or "-" }}
                             {% endif %}
                             · {{ vendas_cliente|length }} venda{% if vendas_cliente|length != 1 %}s{% endif %} vinculada{% if vendas_cliente|length != 1 %}s{% endif %}
                         </div>

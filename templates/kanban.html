@@ -1,0 +1,343 @@
+{% extends "base.html" %}
+
+{% block title %}Kanban Comercial | HubStudio App{% endblock %}
+
+{% block page_title %}Kanban Comercial{% endblock %}
+
+{% block page_subtitle %}
+Acompanhe clientes em prospecção até o fechamento. Ao fechar, o cliente fica ativo e disponível para lançamento de vendas.
+{% endblock %}
+
+{% block content %}
+
+<style>
+    .kanban-actions-card {
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 22px;
+        background: #ffffff;
+        padding: 20px;
+    }
+
+    .kanban-board {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(260px, 1fr)) 260px;
+        gap: 18px;
+        overflow-x: auto;
+        padding-bottom: 12px;
+    }
+
+    .kanban-column {
+        min-height: 520px;
+        border-radius: 22px;
+        background: #f7f7f8;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        padding: 14px;
+    }
+
+    .kanban-column-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+
+    .kanban-column-title {
+        font-weight: 800;
+        margin-bottom: 2px;
+    }
+
+    .kanban-column-description {
+        color: #777777;
+        font-size: 0.78rem;
+        line-height: 1.25;
+    }
+
+    .kanban-count {
+        min-width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        background: #ffffff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.78rem;
+        font-weight: 800;
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.06);
+    }
+
+    .kanban-dropzone {
+        min-height: 420px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .kanban-card {
+        background: #ffffff;
+        border-radius: 18px;
+        padding: 14px;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.06);
+        cursor: grab;
+        transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .kanban-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 16px 34px rgba(0, 0, 0, 0.1);
+    }
+
+    .kanban-card:active {
+        cursor: grabbing;
+    }
+
+    .kanban-card-title {
+        font-weight: 800;
+        margin-bottom: 4px;
+    }
+
+    .kanban-card-info {
+        color: #666666;
+        font-size: 0.82rem;
+    }
+
+    .kanban-card-tags {
+        margin-top: 10px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .kanban-tag {
+        border-radius: 999px;
+        padding: 4px 8px;
+        background: #f0f0f0;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #555555;
+    }
+
+    .kanban-finish-column {
+        background: linear-gradient(135deg, rgba(180, 20, 20, 0.08), rgba(90, 10, 10, 0.08));
+        border: 1px dashed rgba(180, 20, 20, 0.35);
+    }
+
+    .kanban-finish-drop {
+        min-height: 420px;
+        border-radius: 18px;
+        border: 2px dashed rgba(180, 20, 20, 0.35);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        color: #8a1d1d;
+        font-weight: 800;
+        padding: 18px;
+    }
+
+    .kanban-dropzone.drag-over,
+    .kanban-finish-drop.drag-over {
+        outline: 3px solid rgba(180, 20, 20, 0.18);
+        outline-offset: 4px;
+    }
+
+    @media (max-width: 1200px) {
+        .kanban-board {
+            grid-template-columns: repeat(6, 260px);
+        }
+    }
+</style>
+
+<div class="kanban-actions-card mb-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+            <h5 class="fw-bold mb-1">Adicionar cliente ao kanban</h5>
+            <p class="text-muted mb-0">
+                Apenas clientes cadastrados, ainda não ativos e fora do funil aparecem nesta lista.
+            </p>
+        </div>
+
+        <form method="POST" action="{{ url_for('kanban.adicionar_ao_kanban') }}" class="d-flex gap-2 flex-wrap">
+            <select name="cliente_id" class="form-select" style="min-width: 280px;" required>
+                <option value="">Selecione um cliente</option>
+
+                {% for cliente in clientes_disponiveis %}
+                    <option value="{{ cliente.id }}">{{ cliente.nome }}</option>
+                {% endfor %}
+            </select>
+
+            <button type="submit" class="btn btn-primary-app">
+                <i class="bi bi-plus-circle me-1"></i>
+                Adicionar
+            </button>
+        </form>
+    </div>
+
+    {% if not clientes_disponiveis %}
+        <div class="alert alert-light border mt-3 mb-0">
+            Nenhum cliente disponível para adicionar ao kanban.
+        </div>
+    {% endif %}
+</div>
+
+<div class="kanban-board">
+
+    {% for etapa in etapas %}
+        {% set clientes_etapa = clientes_por_etapa.get(etapa.id, []) %}
+
+        <div class="kanban-column">
+            <div class="kanban-column-header">
+                <div>
+                    <div class="kanban-column-title">{{ etapa.nome }}</div>
+                    <div class="kanban-column-description">{{ etapa.descricao }}</div>
+                </div>
+
+                <span class="kanban-count">{{ clientes_etapa|length }}</span>
+            </div>
+
+            <div class="kanban-dropzone" data-status="{{ etapa.id }}">
+                {% for cliente in clientes_etapa %}
+                    <div
+                        class="kanban-card"
+                        draggable="true"
+                        data-cliente-id="{{ cliente.id }}"
+                    >
+                        <div class="kanban-card-title">{{ cliente.nome }}</div>
+
+                        <div class="kanban-card-info">
+                            {% if cliente.responsavel_nome %}
+                                Responsável: {{ cliente.responsavel_nome }}
+                            {% elif cliente.responsavel %}
+                                Responsável: {{ cliente.responsavel }}
+                            {% else %}
+                                Responsável: -
+                            {% endif %}
+                        </div>
+
+                        <div class="kanban-card-info">
+                            {{ cliente.telefone or cliente.email or "Sem contato cadastrado" }}
+                        </div>
+
+                        {% if cliente.tags %}
+                            <div class="kanban-card-tags">
+                                {% for tag in cliente.tags.split(",") %}
+                                    {% if tag.strip() %}
+                                        <span class="kanban-tag">{{ tag.strip() }}</span>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <div class="d-flex justify-content-between align-items-center gap-2 mt-3">
+                            <small class="text-muted">Arraste para mover</small>
+
+                            <form method="POST" action="{{ url_for('kanban.remover_do_kanban', cliente_id=cliente.id) }}">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary rounded-3">
+                                    Remover
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endfor %}
+
+    <div class="kanban-column kanban-finish-column">
+        <div class="kanban-column-header">
+            <div>
+                <div class="kanban-column-title">Fechado</div>
+                <div class="kanban-column-description">
+                    Solte aqui para ativar o cliente e liberar lançamentos de vendas.
+                </div>
+            </div>
+        </div>
+
+        <div class="kanban-finish-drop" data-status="fechado">
+            Solte o card aqui para marcar como ativo.
+        </div>
+    </div>
+
+</div>
+
+<script>
+    let draggedCard = null;
+
+    function atualizarCliente(clienteId, novoStatus, card) {
+        fetch(`/kanban/mover/${clienteId}`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                status: novoStatus
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.sucesso) {
+                alert(data.mensagem || "Não foi possível mover o cliente.");
+                window.location.reload();
+                return;
+            }
+
+            if (data.remover_card) {
+                card.remove();
+            }
+
+            window.location.reload();
+        })
+        .catch(() => {
+            alert("Erro ao mover o cliente.");
+            window.location.reload();
+        });
+    }
+
+    document.querySelectorAll(".kanban-card").forEach(card => {
+        card.addEventListener("dragstart", event => {
+            draggedCard = card;
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData("text/plain", card.dataset.clienteId);
+        });
+
+        card.addEventListener("dragend", () => {
+            draggedCard = null;
+
+            document.querySelectorAll(".drag-over").forEach(element => {
+                element.classList.remove("drag-over");
+            });
+        });
+    });
+
+    document.querySelectorAll(".kanban-dropzone, .kanban-finish-drop").forEach(zone => {
+        zone.addEventListener("dragover", event => {
+            event.preventDefault();
+            zone.classList.add("drag-over");
+        });
+
+        zone.addEventListener("dragleave", () => {
+            zone.classList.remove("drag-over");
+        });
+
+        zone.addEventListener("drop", event => {
+            event.preventDefault();
+            zone.classList.remove("drag-over");
+
+            const clienteId = event.dataTransfer.getData("text/plain");
+            const novoStatus = zone.dataset.status;
+
+            if (!clienteId || !novoStatus || !draggedCard) {
+                return;
+            }
+
+            if (novoStatus !== "fechado") {
+                zone.appendChild(draggedCard);
+            }
+
+            atualizarCliente(clienteId, novoStatus, draggedCard);
+        });
+    });
+</script>
+
+{% endblock %}

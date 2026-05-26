@@ -87,7 +87,8 @@ def novo_cliente():
         responsavel_nome=responsavel_nome,
         responsavel_celular=responsavel_celular,
         responsavel_contato=responsavel_contato,
-        ativo=True
+        ativo=False,
+        status="-"
     )
 
     db.session.add(cliente)
@@ -132,7 +133,11 @@ def editar_cliente(cliente_id):
     cliente.responsavel_contato = responsavel_contato
 
     cliente.ativo = ativo
-
+    if ativo:
+        cliente.status = "ativo"
+    elif cliente.status == "ativo":
+        cliente.status = "-"
+        
     db.session.commit()
 
     flash("Cliente atualizado com sucesso.", "success")
