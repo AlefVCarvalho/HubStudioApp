@@ -5,7 +5,7 @@
 {% block page_title %}Dashboard{% endblock %}
 
 {% block page_subtitle %}
-Visão geral de vendas, clientes, serviços, gastos e ganhos.
+Visão geral de receitas recorrentes, custos, clientes e serviços cadastrados.
 {% endblock %}
 
 {% block content %}
@@ -25,7 +25,7 @@ Visão geral de vendas, clientes, serviços, gastos e ganhos.
                     <i class="bi bi-graph-up-arrow"></i>
                 </div>
             </div>
-            <small class="text-muted">Entradas pagas ou pendentes não canceladas.</small>
+            <small class="text-muted">Receitas do mês selecionado no gráfico diário.</small>
         </div>
     </div>
 
@@ -33,16 +33,16 @@ Visão geral de vendas, clientes, serviços, gastos e ganhos.
         <div class="content-card h-100">
             <div class="d-flex justify-content-between align-items-start">
                 <div>
-                    <p class="text-muted mb-1">Despesas do mês</p>
+                    <p class="text-muted mb-1">Custos do mês</p>
                     <h3 class="fw-bold mb-0">
-                        R$ {{ "%.2f"|format(despesas_mes or 0) }}
+                        R$ {{ "%.2f"|format(custos_mes or 0) }}
                     </h3>
                 </div>
                 <div class="dashboard-icon">
                     <i class="bi bi-graph-down-arrow"></i>
                 </div>
             </div>
-            <small class="text-muted">Custos e saídas mensais não canceladas.</small>
+            <small class="text-muted">Custos pontuais do mês selecionado.</small>
         </div>
     </div>
 
@@ -50,7 +50,7 @@ Visão geral de vendas, clientes, serviços, gastos e ganhos.
         <div class="content-card h-100">
             <div class="d-flex justify-content-between align-items-start">
                 <div>
-                    <p class="text-muted mb-1">Lucro do mês</p>
+                    <p class="text-muted mb-1">Saldo do mês</p>
                     <h3 class="fw-bold mb-0">
                         R$ {{ "%.2f"|format(lucro_mes or 0) }}
                     </h3>
@@ -59,7 +59,7 @@ Visão geral de vendas, clientes, serviços, gastos e ganhos.
                     <i class="bi bi-cash-stack"></i>
                 </div>
             </div>
-            <small class="text-muted">Receitas menos despesas do mês atual.</small>
+            <small class="text-muted">Receitas menos custos do mês selecionado.</small>
         </div>
     </div>
 
@@ -76,7 +76,7 @@ Visão geral de vendas, clientes, serviços, gastos e ganhos.
                     <i class="bi bi-buildings"></i>
                 </div>
             </div>
-            <small class="text-muted">{{ servicos_ativos }} serviços ativos cadastrados.</small>
+            <small class="text-muted">{{ clientes_com_receita }} cliente{% if clientes_com_receita != 1 %}s{% endif %} com receita vinculada.</small>
         </div>
     </div>
 
@@ -84,23 +84,95 @@ Visão geral de vendas, clientes, serviços, gastos e ganhos.
 
 <div class="row g-4 mb-4">
 
+    <div class="col-md-4">
+        <div class="content-card h-100">
+            <p class="text-muted mb-1">Receitas pendentes</p>
+            <h3 class="fw-bold mb-0">
+                R$ {{ "%.2f"|format(receitas_pendentes or 0) }}
+            </h3>
+            <small class="text-muted">Soma das ocorrências pendentes não canceladas.</small>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="content-card h-100">
+            <p class="text-muted mb-1">Ticket médio</p>
+            <h3 class="fw-bold mb-0">
+                R$ {{ "%.2f"|format(ticket_medio or 0) }}
+            </h3>
+            <small class="text-muted">Média por ocorrência de receita.</small>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="content-card h-100">
+            <p class="text-muted mb-1">Serviços ativos</p>
+            <h3 class="fw-bold mb-0">
+                {{ servicos_ativos }}
+            </h3>
+            <small class="text-muted">Serviços disponíveis para vínculo em receitas.</small>
+        </div>
+    </div>
+
+</div>
+
+<div class="content-card mb-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+        <div>
+            <h5 class="fw-bold mb-1">Visão diária</h5>
+            <p class="text-muted mb-0">
+                Receitas, custos e saldo por dia do mês selecionado.
+            </p>
+        </div>
+
+        <form method="GET" action="{{ url_for('dashboard.dashboard') }}" class="d-flex gap-2 align-items-center">
+            <input type="hidden" name="grafico_ano" value="{{ grafico_ano }}">
+            <input
+                type="month"
+                name="grafico_mes"
+                class="form-control"
+                value="{{ grafico_mes_valor }}"
+            >
+            <button type="submit" class="btn btn-outline-app">
+                Aplicar
+            </button>
+        </form>
+    </div>
+
+    <div style="height: 360px;">
+        <canvas id="graficoDiario"></canvas>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+
     <div class="col-lg-8">
         <div class="content-card h-100">
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
                 <div>
-                    <h5 class="fw-bold mb-1">Análise mês a mês - {{ ano_atual }}</h5>
+                    <h5 class="fw-bold mb-1">Visão anual - {{ grafico_ano }}</h5>
                     <p class="text-muted mb-0">
-                        Comparativo entre ganhos, gastos e lucro.
+                        Receitas recorrentes, custos e saldo por mês.
                     </p>
                 </div>
 
-                <span class="badge-app">
-                    Ano atual
-                </span>
+                <form method="GET" action="{{ url_for('dashboard.dashboard') }}" class="d-flex gap-2 align-items-center">
+                    <input type="hidden" name="grafico_mes" value="{{ grafico_mes_valor }}">
+                    <select name="grafico_ano" class="form-select">
+                        {% for ano in anos_para_select %}
+                            <option value="{{ ano }}" {% if grafico_ano == ano %}selected{% endif %}>
+                                {{ ano }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-outline-app">
+                        Aplicar
+                    </button>
+                </form>
             </div>
 
             <div style="height: 360px;">
-                <canvas id="graficoMensal"></canvas>
+                <canvas id="graficoAnual"></canvas>
             </div>
         </div>
     </div>
@@ -115,12 +187,12 @@ Visão geral de vendas, clientes, serviços, gastos e ganhos.
             </div>
 
             <div class="summary-line">
-                <span>Despesas no ano</span>
-                <strong>R$ {{ "%.2f"|format(total_despesas_ano or 0) }}</strong>
+                <span>Custos no ano</span>
+                <strong>R$ {{ "%.2f"|format(total_custos_ano or 0) }}</strong>
             </div>
 
             <div class="summary-line total">
-                <span>Lucro no ano</span>
+                <span>Saldo no ano</span>
                 <strong>R$ {{ "%.2f"|format(lucro_ano or 0) }}</strong>
             </div>
 
@@ -131,15 +203,15 @@ Visão geral de vendas, clientes, serviços, gastos e ganhos.
 
                 {% if lucro_mes > 0 %}
                     <p class="mb-0">
-                        O mês atual está positivo. As receitas superam as despesas até o momento.
+                        O mês selecionado está positivo. As receitas superam os custos.
                     </p>
                 {% elif lucro_mes < 0 %}
                     <p class="mb-0">
-                        O mês atual está negativo. As despesas estão maiores que as receitas.
+                        O mês selecionado está negativo. Os custos estão maiores que as receitas.
                     </p>
                 {% else %}
                     <p class="mb-0">
-                        O mês atual está equilibrado ou ainda sem movimentações suficientes.
+                        O mês selecionado está equilibrado ou ainda sem movimentações suficientes.
                     </p>
                 {% endif %}
             </div>
@@ -154,7 +226,7 @@ Visão geral de vendas, clientes, serviços, gastos e ganhos.
         <div>
             <h5 class="fw-bold mb-1">Últimos lançamentos</h5>
             <p class="text-muted mb-0">
-                Movimentações recentes registradas na aba Vendas.
+                Movimentações recentes registradas em Vendas.
             </p>
         </div>
 
@@ -173,6 +245,7 @@ Visão geral de vendas, clientes, serviços, gastos e ganhos.
                         <th>Tipo</th>
                         <th>Descrição</th>
                         <th>Cliente</th>
+                        <th>Serviço</th>
                         <th>Valor</th>
                         <th>Status</th>
                     </tr>
@@ -188,8 +261,8 @@ Visão geral de vendas, clientes, serviços, gastos e ganhos.
                             <td>
                                 {% if lancamento.tipo == "receita" %}
                                     <span class="badge bg-success">Receita</span>
-                                {% elif lancamento.tipo == "despesa" %}
-                                    <span class="badge bg-danger">Despesa</span>
+                                {% elif lancamento.tipo in ["custo", "despesa"] %}
+                                    <span class="badge bg-danger">Custo</span>
                                 {% else %}
                                     <span class="badge bg-secondary">{{ lancamento.tipo }}</span>
                                 {% endif %}
@@ -202,6 +275,14 @@ Visão geral de vendas, clientes, serviços, gastos e ganhos.
                             <td>
                                 {% if lancamento.cliente %}
                                     {{ lancamento.cliente.nome }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if lancamento.servico %}
+                                    {{ lancamento.servico.nome }}
                                 {% else %}
                                     -
                                 {% endif %}
@@ -231,7 +312,7 @@ Visão geral de vendas, clientes, serviços, gastos e ganhos.
     {% else %}
 
         <div class="alert alert-light border mb-0">
-            Nenhum lançamento registrado ainda. Cadastre receitas ou despesas na aba Vendas para alimentar o dashboard.
+            Nenhum lançamento registrado ainda. Cadastre receitas ou custos em Vendas para alimentar o dashboard.
         </div>
 
     {% endif %}
@@ -289,110 +370,127 @@ Visão geral de vendas, clientes, serviços, gastos e ganhos.
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-    const mesesLabelsJson = '{{ meses_labels | tojson | safe }}';
-    const receitasPorMesJson = '{{ receitas_por_mes | tojson | safe }}';
-    const despesasPorMesJson = '{{ despesas_por_mes | tojson | safe }}';
-    const lucroPorMesJson = '{{ lucro_por_mes | tojson | safe }}';
+    const diasLabels = JSON.parse('{{ dias_labels | tojson | safe }}');
+    const receitasPorDia = JSON.parse('{{ receitas_por_dia | tojson | safe }}');
+    const custosPorDia = JSON.parse('{{ custos_por_dia | tojson | safe }}');
+    const lucroPorDia = JSON.parse('{{ lucro_por_dia | tojson | safe }}');
 
-    const mesesLabels = JSON.parse(mesesLabelsJson);
-    const receitasPorMes = JSON.parse(receitasPorMesJson);
-    const despesasPorMes = JSON.parse(despesasPorMesJson);
-    const lucroPorMes = JSON.parse(lucroPorMesJson);
+    const mesesLabels = JSON.parse('{{ meses_labels | tojson | safe }}');
+    const receitasPorMes = JSON.parse('{{ receitas_por_mes | tojson | safe }}');
+    const custosPorMes = JSON.parse('{{ custos_por_mes | tojson | safe }}');
+    const lucroPorMes = JSON.parse('{{ lucro_por_mes | tojson | safe }}');
 
-    const ctx = document.getElementById("graficoMensal");
+    function moedaTooltip(context) {
+        const valor = context.raw || 0;
 
-    new Chart(ctx, {
-        type: "bar",
-        data: {
-            labels: mesesLabels,
-            datasets: [
-                {
-                    label: "Receitas",
-                    data: receitasPorMes,
-                    backgroundColor: "rgba(233, 0, 52, 0.85)",
-                    borderColor: "#e90034",
-                    borderWidth: 1,
-                    borderRadius: 8
-                },
-                {
-                    label: "Despesas",
-                    data: despesasPorMes,
-                    backgroundColor: "rgba(0, 0, 0, 0.75)",
-                    borderColor: "#000000",
-                    borderWidth: 1,
-                    borderRadius: 8
-                },
-                {
-                    label: "Lucro",
-                    data: lucroPorMes,
-                    type: "line",
-                    borderColor: "#e90034",
-                    backgroundColor: "#ffffff",
-                    borderWidth: 3,
-                    tension: 0.35,
-                    pointBackgroundColor: "#ffffff",
-                    pointBorderColor: "#e90034",
-                    pointBorderWidth: 3,
-                    pointRadius: 5
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
+        return context.dataset.label + ": R$ " + valor.toLocaleString("pt-BR", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
 
-            plugins: {
-                legend: {
-                    position: "bottom",
-                    labels: {
-                        usePointStyle: true,
-                        padding: 18,
-                        color: "#000000",
-                        font: {
-                            weight: "bold"
-                        }
+    function criarGraficoLinha(canvasId, labels, receitas, custos, lucro) {
+        const ctx = document.getElementById(canvasId);
+
+        new Chart(ctx, {
+            type: "line",
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: "Receitas",
+                        data: receitas,
+                        borderColor: "#e90034",
+                        backgroundColor: "rgba(233, 0, 52, 0.08)",
+                        borderWidth: 3,
+                        tension: 0.35,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        fill: false
+                    },
+                    {
+                        label: "Custos",
+                        data: custos,
+                        borderColor: "#000000",
+                        backgroundColor: "rgba(0, 0, 0, 0.08)",
+                        borderWidth: 3,
+                        tension: 0.35,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        fill: false
+                    },
+                    {
+                        label: "Saldo",
+                        data: lucro,
+                        borderColor: "#777777",
+                        backgroundColor: "rgba(119, 119, 119, 0.08)",
+                        borderWidth: 3,
+                        tension: 0.35,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        fill: false
                     }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const valor = context.raw || 0;
-                            return context.dataset.label + ": R$ " + valor.toLocaleString("pt-BR", {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2
-                            });
-                        }
-                    }
-                }
+                ]
             },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
 
-            scales: {
-                x: {
-                    ticks: {
-                        color: "#000000",
-                        font: {
-                            weight: "bold"
+                interaction: {
+                    mode: "index",
+                    intersect: false
+                },
+
+                plugins: {
+                    legend: {
+                        position: "bottom",
+                        labels: {
+                            usePointStyle: true,
+                            padding: 18,
+                            color: "#000000",
+                            font: {
+                                weight: "bold"
+                            }
                         }
                     },
-                    grid: {
-                        display: false
+                    tooltip: {
+                        callbacks: {
+                            label: moedaTooltip
+                        }
                     }
                 },
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        color: "#000000",
-                        callback: function(value) {
-                            return "R$ " + value.toLocaleString("pt-BR");
+
+                scales: {
+                    x: {
+                        ticks: {
+                            color: "#000000",
+                            font: {
+                                weight: "bold"
+                            }
+                        },
+                        grid: {
+                            display: false
                         }
                     },
-                    grid: {
-                        color: "rgba(0, 0, 0, 0.08)"
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: "#000000",
+                            callback: function(value) {
+                                return "R$ " + value.toLocaleString("pt-BR");
+                            }
+                        },
+                        grid: {
+                            color: "rgba(0, 0, 0, 0.08)"
+                        }
                     }
                 }
             }
-        }
-    });
+        });
+    }
+
+    criarGraficoLinha("graficoDiario", diasLabels, receitasPorDia, custosPorDia, lucroPorDia);
+    criarGraficoLinha("graficoAnual", mesesLabels, receitasPorMes, custosPorMes, lucroPorMes);
 </script>
 
 {% endblock %}

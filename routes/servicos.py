@@ -11,22 +11,29 @@ servicos_bp = Blueprint("servicos", __name__, url_prefix="/servicos")
 @login_required
 def servicos():
     busca = request.args.get("busca", "").strip()
+    status = request.args.get("status", "").strip()
 
     query = Servico.query
 
     if busca:
         query = query.filter(
             Servico.nome.ilike(f"%{busca}%") |
-            Servico.periodicidade.ilike(f"%{busca}%") |
-            Servico.descricao.ilike(f"%{busca}%")
+            Servico.descricao.ilike(f"%{busca}%") |
+            Servico.tags.ilike(f"%{busca}%")
         )
+
+    if status == "ativo":
+        query = query.filter(Servico.ativo == True)
+    elif status == "inativo":
+        query = query.filter(Servico.ativo == False)
 
     lista_servicos = query.order_by(Servico.nome.asc()).all()
 
     return render_template(
         "servicos.html",
         servicos=lista_servicos,
-        busca=busca
+        busca=busca,
+        status=status
     )
 
 
@@ -34,26 +41,16 @@ def servicos():
 @login_required
 def novo_servico():
     nome = request.form.get("nome", "").strip()
-    periodicidade = request.form.get("periodicidade", "").strip()
-    valor = request.form.get("valor", "0").strip().replace(",", ".")
-    tempo_medio = request.form.get("tempo_medio", "").strip()
+    tags = request.form.get("tags", "").strip()
     descricao = request.form.get("descricao", "").strip()
 
     if not nome:
         flash("O nome do serviço é obrigatório.", "warning")
         return redirect(url_for("servicos.servicos"))
 
-    try:
-        valor = float(valor)
-    except ValueError:
-        flash("Informe um valor médio válido para o serviço.", "warning")
-        return redirect(url_for("servicos.servicos"))
-
     servico = Servico(
         nome=nome,
-        periodicidade=periodicidade,
-        valor=valor,
-        tempo_medio=tempo_medio,
+        tags=tags,
         descricao=descricao,
         ativo=True
     )
@@ -71,9 +68,7 @@ def editar_servico(servico_id):
     servico = Servico.query.get_or_404(servico_id)
 
     nome = request.form.get("nome", "").strip()
-    periodicidade = request.form.get("periodicidade", "").strip()
-    valor = request.form.get("valor", "0").strip().replace(",", ".")
-    tempo_medio = request.form.get("tempo_medio", "").strip()
+    tags = request.form.get("tags", "").strip()
     descricao = request.form.get("descricao", "").strip()
     ativo = request.form.get("ativo") == "on"
 
@@ -81,16 +76,8 @@ def editar_servico(servico_id):
         flash("O nome do serviço é obrigatório.", "warning")
         return redirect(url_for("servicos.servicos"))
 
-    try:
-        valor = float(valor)
-    except ValueError:
-        flash("Informe um valor médio válido para o serviço.", "warning")
-        return redirect(url_for("servicos.servicos"))
-
     servico.nome = nome
-    servico.periodicidade = periodicidade
-    servico.valor = valor
-    servico.tempo_medio = tempo_medio
+    servico.tags = tags
     servico.descricao = descricao
     servico.ativo = ativo
 

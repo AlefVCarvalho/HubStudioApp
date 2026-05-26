@@ -11,6 +11,7 @@ clientes_bp = Blueprint("clientes", __name__, url_prefix="/clientes")
 @login_required
 def clientes():
     busca = request.args.get("busca", "").strip()
+    status = request.args.get("status", "").strip()
 
     query = Cliente.query
 
@@ -18,14 +19,23 @@ def clientes():
         query = query.filter(
             Cliente.nome.ilike(f"%{busca}%") |
             Cliente.cnpj.ilike(f"%{busca}%") |
+            Cliente.telefone.ilike(f"%{busca}%") |
             Cliente.email.ilike(f"%{busca}%") |
-            Cliente.responsavel.ilike(f"%{busca}%")
+            Cliente.tags.ilike(f"%{busca}%") |
+            Cliente.responsavel.ilike(f"%{busca}%") |
+            Cliente.responsavel_nome.ilike(f"%{busca}%") |
+            Cliente.responsavel_celular.ilike(f"%{busca}%") |
+            Cliente.responsavel_contato.ilike(f"%{busca}%")
         )
+
+    if status == "ativo":
+        query = query.filter(Cliente.ativo == True)
+    elif status == "inativo":
+        query = query.filter(Cliente.ativo == False)
 
     lista_clientes = query.order_by(Cliente.nome.asc()).all()
 
     cliente_ids = [cliente.id for cliente in lista_clientes]
-
     vendas_por_cliente = {}
 
     if cliente_ids:
@@ -37,16 +47,14 @@ def clientes():
         )
 
         for venda in vendas:
-            if venda.cliente_id not in vendas_por_cliente:
-                vendas_por_cliente[venda.cliente_id] = []
-
-            vendas_por_cliente[venda.cliente_id].append(venda)
+            vendas_por_cliente.setdefault(venda.cliente_id, []).append(venda)
 
     return render_template(
         "clientes/index.html",
         clientes=lista_clientes,
+        vendas_por_cliente=vendas_por_cliente,
         busca=busca,
-        vendas_por_cliente=vendas_por_cliente
+        status=status
     )
 
 
@@ -57,8 +65,12 @@ def novo_cliente():
     cnpj = request.form.get("cnpj", "").strip()
     telefone = request.form.get("telefone", "").strip()
     email = request.form.get("email", "").strip()
-    responsavel = request.form.get("responsavel", "").strip()
+    tags = request.form.get("tags", "").strip()
     observacoes = request.form.get("observacoes", "").strip()
+
+    responsavel_nome = request.form.get("responsavel_nome", "").strip()
+    responsavel_celular = request.form.get("responsavel_celular", "").strip()
+    responsavel_contato = request.form.get("responsavel_contato", "").strip()
 
     if not nome:
         flash("O nome do cliente é obrigatório.", "warning")
@@ -69,8 +81,12 @@ def novo_cliente():
         cnpj=cnpj,
         telefone=telefone,
         email=email,
-        responsavel=responsavel,
+        tags=tags,
         observacoes=observacoes,
+        responsavel=responsavel_nome,
+        responsavel_nome=responsavel_nome,
+        responsavel_celular=responsavel_celular,
+        responsavel_contato=responsavel_contato,
         ativo=True
     )
 
@@ -90,8 +106,13 @@ def editar_cliente(cliente_id):
     cnpj = request.form.get("cnpj", "").strip()
     telefone = request.form.get("telefone", "").strip()
     email = request.form.get("email", "").strip()
-    responsavel = request.form.get("responsavel", "").strip()
+    tags = request.form.get("tags", "").strip()
     observacoes = request.form.get("observacoes", "").strip()
+
+    responsavel_nome = request.form.get("responsavel_nome", "").strip()
+    responsavel_celular = request.form.get("responsavel_celular", "").strip()
+    responsavel_contato = request.form.get("responsavel_contato", "").strip()
+
     ativo = request.form.get("ativo") == "on"
 
     if not nome:
@@ -102,8 +123,14 @@ def editar_cliente(cliente_id):
     cliente.cnpj = cnpj
     cliente.telefone = telefone
     cliente.email = email
-    cliente.responsavel = responsavel
+    cliente.tags = tags
     cliente.observacoes = observacoes
+
+    cliente.responsavel = responsavel_nome
+    cliente.responsavel_nome = responsavel_nome
+    cliente.responsavel_celular = responsavel_celular
+    cliente.responsavel_contato = responsavel_contato
+
     cliente.ativo = ativo
 
     db.session.commit()

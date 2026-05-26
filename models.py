@@ -35,7 +35,14 @@ class Cliente(db.Model):
     cnpj = db.Column(db.String(20), nullable=True)
     telefone = db.Column(db.String(30), nullable=True)
     email = db.Column(db.String(120), nullable=True)
+    tags = db.Column(db.String(255), nullable=True)
+
+    # Campo legado mantido para compatibilidade com versões anteriores da tela/rotas.
     responsavel = db.Column(db.String(120), nullable=True)
+
+    responsavel_nome = db.Column(db.String(120), nullable=True)
+    responsavel_celular = db.Column(db.String(30), nullable=True)
+    responsavel_contato = db.Column(db.String(120), nullable=True)
 
     observacoes = db.Column(db.Text, nullable=True)
     ativo = db.Column(db.Boolean, default=True)
@@ -69,9 +76,7 @@ class Servico(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     nome = db.Column(db.String(150), nullable=False)
-    periodicidade = db.Column(db.String(50), nullable=True)
-    valor = db.Column(db.Float, nullable=False, default=0.0)
-    tempo_medio = db.Column(db.String(80), nullable=True)
+    tags = db.Column(db.String(255), nullable=True)
     descricao = db.Column(db.Text, nullable=True)
 
     ativo = db.Column(db.Boolean, default=True)
@@ -115,7 +120,6 @@ class ClienteServico(db.Model):
         nullable=False
     )
 
-    valor_personalizado = db.Column(db.Float, nullable=True)
     observacoes = db.Column(db.Text, nullable=True)
     ativo = db.Column(db.Boolean, default=True)
 
@@ -131,12 +135,6 @@ class ClienteServico(db.Model):
         back_populates="clientes"
     )
 
-    def valor_final(self):
-        if self.valor_personalizado is not None:
-            return self.valor_personalizado
-
-        return self.servico.valor
-
     def __repr__(self):
         return f"<ClienteServico cliente={self.cliente_id} servico={self.servico_id}>"
 
@@ -149,7 +147,7 @@ class Venda(db.Model):
     tipo = db.Column(db.String(20), nullable=False)
     # Valores esperados:
     # receita
-    # despesa
+    # custo
 
     descricao = db.Column(db.String(255), nullable=False)
 
@@ -167,13 +165,18 @@ class Venda(db.Model):
 
     valor = db.Column(db.Float, nullable=False, default=0.0)
 
+    # Para receitas, representa a data de início quando data_inicio não estiver preenchida.
+    # Para custos, representa a data pontual do custo.
     data = db.Column(db.Date, nullable=False, default=datetime.utcnow)
+
+    data_inicio = db.Column(db.Date, nullable=True)
+    data_fim = db.Column(db.Date, nullable=True)
+    periodicidade = db.Column(db.String(30), nullable=False, default="unica")
 
     forma_pagamento = db.Column(db.String(80), nullable=True)
 
+    # Campo legado mantido para compatibilidade com lançamentos antigos.
     categoria = db.Column(db.String(100), nullable=True)
-    # Para receitas: venda, mensalidade, serviço avulso etc.
-    # Para despesas: aluguel, internet, imposto, funcionário, marketing etc.
 
     status = db.Column(db.String(50), nullable=False, default="pago")
     # pago
