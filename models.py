@@ -1,6 +1,6 @@
 from datetime import datetime
-from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
+from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 
 
@@ -9,9 +9,8 @@ db = SQLAlchemy()
 
 class Usuario(UserMixin, db.Model):
     __tablename__ = "usuarios"
-
     id = db.Column(db.Integer, primary_key=True)
-    usuario = db.Column(db.String(80), unique=True, nullable=False)
+    usuario = db.Column(db.String(120), unique=True, nullable=False)
     nome = db.Column(db.String(120), nullable=False, default="Administrador")
     senha_hash = db.Column(db.String(255), nullable=False)
     criado_em = db.Column(db.DateTime, default=datetime.utcnow)
@@ -22,188 +21,68 @@ class Usuario(UserMixin, db.Model):
     def verificar_senha(self, senha):
         return check_password_hash(self.senha_hash, senha)
 
-    def __repr__(self):
-        return f"<Usuario {self.usuario}>"
 
-
-class Cliente(db.Model):
-    __tablename__ = "clientes"
-
+class Produto(db.Model):
+    __tablename__ = "produtos"
     id = db.Column(db.Integer, primary_key=True)
-
     nome = db.Column(db.String(150), nullable=False)
-    cnpj = db.Column(db.String(20), nullable=True)
-    telefone = db.Column(db.String(30), nullable=True)
-    email = db.Column(db.String(120), nullable=True)
-    tags = db.Column(db.String(255), nullable=True)
-
-    # Campo legado mantido para compatibilidade com versões anteriores da tela/rotas.
-    responsavel = db.Column(db.String(120), nullable=True)
-
-    responsavel_nome = db.Column(db.String(120), nullable=True)
-    responsavel_celular = db.Column(db.String(30), nullable=True)
-    responsavel_contato = db.Column(db.String(120), nullable=True)
-
-    observacoes = db.Column(db.Text, nullable=True)
-
-    status = db.Column(db.String(50), nullable=False, default="-")
-    
-    ativo = db.Column(db.Boolean, default=True)
-
-    criado_em = db.Column(db.DateTime, default=datetime.utcnow)
-    atualizado_em = db.Column(
-        db.DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow
-    )
-
-    servicos = db.relationship(
-        "ClienteServico",
-        back_populates="cliente",
-        cascade="all, delete-orphan"
-    )
-
-    vendas = db.relationship(
-        "Venda",
-        back_populates="cliente",
-        cascade="all, delete-orphan"
-    )
-
-    def __repr__(self):
-        return f"<Cliente {self.nome}>"
+    descricao = db.Column(db.Text)
+    tags = db.Column(db.String(255))
+    etapas = db.relationship("ProdutoEtapa", back_populates="produto", cascade="all, delete-orphan", order_by="ProdutoEtapa.ordem")
+    itens_producao = db.relationship("ProducaoProduto", back_populates="produto")
 
 
-class Servico(db.Model):
-    __tablename__ = "servicos"
-
+class ProdutoEtapa(db.Model):
+    __tablename__ = "produto_etapas"
     id = db.Column(db.Integer, primary_key=True)
-
-    nome = db.Column(db.String(150), nullable=False)
-    tags = db.Column(db.String(255), nullable=True)
-    descricao = db.Column(db.Text, nullable=True)
-
-    ativo = db.Column(db.Boolean, default=True)
-
-    criado_em = db.Column(db.DateTime, default=datetime.utcnow)
-    atualizado_em = db.Column(
-        db.DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow
-    )
-
-    clientes = db.relationship(
-        "ClienteServico",
-        back_populates="servico",
-        cascade="all, delete-orphan"
-    )
-
-    vendas = db.relationship(
-        "Venda",
-        back_populates="servico"
-    )
-
-    def __repr__(self):
-        return f"<Servico {self.nome}>"
-
-
-class ClienteServico(db.Model):
-    __tablename__ = "cliente_servico"
-
-    id = db.Column(db.Integer, primary_key=True)
-
-    cliente_id = db.Column(
-        db.Integer,
-        db.ForeignKey("clientes.id"),
-        nullable=False
-    )
-
-    servico_id = db.Column(
-        db.Integer,
-        db.ForeignKey("servicos.id"),
-        nullable=False
-    )
-
-    observacoes = db.Column(db.Text, nullable=True)
-    ativo = db.Column(db.Boolean, default=True)
-
-    criado_em = db.Column(db.DateTime, default=datetime.utcnow)
-
-    cliente = db.relationship(
-        "Cliente",
-        back_populates="servicos"
-    )
-
-    servico = db.relationship(
-        "Servico",
-        back_populates="clientes"
-    )
-
-    def __repr__(self):
-        return f"<ClienteServico cliente={self.cliente_id} servico={self.servico_id}>"
-
-
-class Venda(db.Model):
-    __tablename__ = "vendas"
-
-    id = db.Column(db.Integer, primary_key=True)
-
-    tipo = db.Column(db.String(20), nullable=False)
-    # Valores esperados:
-    # receita
-    # custo
-
+    produto_id = db.Column(db.Integer, db.ForeignKey("produtos.id", ondelete="CASCADE"), nullable=False)
     descricao = db.Column(db.String(255), nullable=False)
+    ordem = db.Column(db.Integer, nullable=False, default=0)
+    produto = db.relationship("Produto", back_populates="etapas")
 
-    cliente_id = db.Column(
-        db.Integer,
-        db.ForeignKey("clientes.id"),
-        nullable=True
-    )
 
-    servico_id = db.Column(
-        db.Integer,
-        db.ForeignKey("servicos.id"),
-        nullable=True
-    )
+class Contato(db.Model):
+    __tablename__ = "contatos"
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(150), nullable=False)
+    descricao = db.Column(db.Text)
+    celular = db.Column(db.String(30))
+    telefone = db.Column(db.String(30))
+    email = db.Column(db.String(150))
+    tags = db.Column(db.String(255))
+    observacoes = db.Column(db.Text)
+    fase = db.Column(db.String(30), nullable=False, default="prospeccao")
+    etapa_proposta = db.Column(db.String(30))
+    observacao_proposta = db.Column(db.Text)
+    producoes = db.relationship("Producao", back_populates="cliente", cascade="all, delete-orphan")
 
-    valor = db.Column(db.Float, nullable=False, default=0.0)
 
-    # Para receitas, representa a data de início quando data_inicio não estiver preenchida.
-    # Para custos, representa a data pontual do custo.
-    data = db.Column(db.Date, nullable=False, default=datetime.utcnow)
+class Producao(db.Model):
+    __tablename__ = "producoes"
+    id = db.Column(db.Integer, primary_key=True)
+    cliente_id = db.Column(db.Integer, db.ForeignKey("contatos.id", ondelete="CASCADE"), nullable=False)
+    titulo = db.Column(db.String(180), nullable=False)
+    descricao = db.Column(db.Text)
+    etapa = db.Column(db.String(30), nullable=False, default="alinhamento")
+    observacoes = db.Column(db.Text)
+    cliente = db.relationship("Contato", back_populates="producoes")
+    produtos = db.relationship("ProducaoProduto", back_populates="producao", cascade="all, delete-orphan")
 
-    data_inicio = db.Column(db.Date, nullable=True)
-    data_fim = db.Column(db.Date, nullable=True)
-    periodicidade = db.Column(db.String(30), nullable=False, default="unica")
+    @property
+    def valor_mensal(self):
+        return sum(item.valor or 0 for item in self.produtos if item.periodicidade == "mensal")
 
-    forma_pagamento = db.Column(db.String(80), nullable=True)
+    @property
+    def valor_pontual(self):
+        return sum(item.valor or 0 for item in self.produtos if item.periodicidade == "pontual")
 
-    # Campo legado mantido para compatibilidade com lançamentos antigos.
-    categoria = db.Column(db.String(100), nullable=True)
 
-    status = db.Column(db.String(50), nullable=False, default="pago")
-    # pago
-    # pendente
-    # cancelado
-
-    observacoes = db.Column(db.Text, nullable=True)
-
-    criado_em = db.Column(db.DateTime, default=datetime.utcnow)
-    atualizado_em = db.Column(
-        db.DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow
-    )
-
-    cliente = db.relationship(
-        "Cliente",
-        back_populates="vendas"
-    )
-
-    servico = db.relationship(
-        "Servico",
-        back_populates="vendas"
-    )
-
-    def __repr__(self):
-        return f"<Venda {self.tipo} - {self.descricao} - R$ {self.valor}>"
+class ProducaoProduto(db.Model):
+    __tablename__ = "producao_produtos"
+    id = db.Column(db.Integer, primary_key=True)
+    producao_id = db.Column(db.Integer, db.ForeignKey("producoes.id", ondelete="CASCADE"), nullable=False)
+    produto_id = db.Column(db.Integer, db.ForeignKey("produtos.id"), nullable=False)
+    valor = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    periodicidade = db.Column(db.String(20), nullable=False, default="pontual")
+    producao = db.relationship("Producao", back_populates="produtos")
+    produto = db.relationship("Produto", back_populates="itens_producao")

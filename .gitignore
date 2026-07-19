@@ -1,12 +1,6 @@
 .env
-.env.*
-!.env.example
-__pycache__/
-*.py[cod]
-instance/
-*.db
 .venv/
-venv/
+__pycache__/
+*.pyc
+instance/
 .vercel/
-.pytest_cache/
-.DS_Store
