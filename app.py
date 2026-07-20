@@ -24,7 +24,7 @@ def formatar_brl(valor):
 
 def create_app():
     load_dotenv()
-    app = Flask(__name__, static_folder="public", static_url_path="/static")
+    app = Flask(__name__, static_folder="public", static_url_path="")
     database_url = normalizar_database_url(os.getenv("DATABASE_URL"))
     if not database_url:
         database_url = "sqlite:///hubstudio_novo.db"
