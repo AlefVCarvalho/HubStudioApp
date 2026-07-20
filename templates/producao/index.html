@@ -68,8 +68,9 @@
 {% for etapa in etapas %}{% for item in grupos.get(etapa[0],[]) %}<div class="modal fade" id="edit{{item.id}}"><div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5>Editar produção</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>{{form(item,url_for('producao.editar',producao_id=item.id))}}</div></div></div>{% endfor %}{% endfor %}
 {% endblock %}
 {% block scripts %}
+<script id="produtos-etapas-data" type="application/json">{{ produtos_json|tojson }}</script>
 <script>
-const produtosEtapas={{produtos_json|tojson}};
+const produtosEtapas = JSON.parse(document.getElementById('produtos-etapas-data').textContent);
 function renderChecklist(form, produtoId){
     const box=form.querySelector('.checklist-editor');
     const etapas=produtosEtapas[produtoId] || [];

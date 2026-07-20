@@ -1,30 +1,185 @@
 {% extends 'base.html' %}
+
 {% block title %}Dashboard{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
-{% block page_subtitle %}Visão geral do funil comercial, clientes, produtos, produção e receitas.{% endblock %}
+{% block page_subtitle %}
+Visão geral do funil comercial, clientes, produtos, produção e receitas.
+{% endblock %}
+
 {% block content %}
 <div class="row g-4 mb-4">
-    {% for label,value,icon in [('Produtos',produtos,'box-seam'),('Prospecções',prospeccoes,'person-plus'),('Propostas',propostas,'kanban'),('Clientes',clientes,'people')] %}
-    <div class="col-md-3"><div class="card-app h-100"><i class="bi bi-{{icon}} fs-3 text-danger"></i><div class="metric mt-2">{{value}}</div><div class="text-muted">{{label}}</div></div></div>
+    {% for label, value, icon in [
+        ('Produtos', produtos, 'box-seam'),
+        ('Prospecções', prospeccoes, 'person-plus'),
+        ('Propostas', propostas, 'kanban'),
+        ('Clientes', clientes, 'people')
+    ] %}
+        <div class="col-md-3">
+            <div class="card-app h-100">
+                <i class="bi bi-{{ icon }} fs-3 text-danger"></i>
+                <div class="metric mt-2">{{ value }}</div>
+                <div class="text-muted">{{ label }}</div>
+            </div>
+        </div>
     {% endfor %}
 </div>
+
 <div class="row g-4 mb-4">
-    <div class="col-md-4"><div class="card-app h-100"><div class="text-muted">Serviços em produção</div><div class="metric">{{producoes}}</div></div></div>
-    <div class="col-md-4"><div class="card-app h-100"><div class="text-muted">Receita mensal contratada</div><div class="metric">{{receita_mensal|brl}}</div></div></div>
-    <div class="col-md-4"><div class="card-app h-100"><div class="text-muted">Receita pontual em produção</div><div class="metric">{{receita_pontual|brl}}</div></div></div>
+    <div class="col-md-4">
+        <div class="card-app h-100">
+            <div class="text-muted">Serviços em produção</div>
+            <div class="metric">{{ producoes }}</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card-app h-100">
+            <div class="text-muted">Receita mensal contratada</div>
+            <div class="metric">{{ receita_mensal|brl }}</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card-app h-100">
+            <div class="text-muted">Receita pontual em produção</div>
+            <div class="metric">{{ receita_pontual|brl }}</div>
+        </div>
+    </div>
 </div>
+
 <div class="row g-4 mb-4">
-    <div class="col-lg-7"><div class="card-app h-100"><h5 class="fw-bold">Distribuição da produção</h5><p class="text-muted">Serviços atualmente ativos em cada etapa.</p><div class="chart-box"><canvas id="producaoChart"></canvas></div></div></div>
-    <div class="col-lg-5"><div class="card-app h-100"><h5 class="fw-bold">Distribuição de contatos</h5><p class="text-muted">Prospecções, propostas e clientes convertidos.</p><div class="chart-box"><canvas id="clientesChart"></canvas></div></div></div>
+    <div class="col-lg-7">
+        <div class="card-app h-100">
+            <h5 class="fw-bold">Distribuição da produção</h5>
+            <p class="text-muted">Serviços atualmente ativos em cada etapa.</p>
+            <div class="chart-box"><canvas id="producaoChart"></canvas></div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card-app h-100">
+            <h5 class="fw-bold">Distribuição de contatos</h5>
+            <p class="text-muted">Prospecções, propostas e clientes convertidos.</p>
+            <div class="chart-box"><canvas id="clientesChart"></canvas></div>
+        </div>
+    </div>
 </div>
-<div class="card-app"><h5 class="fw-bold">Receitas por mês</h5><p class="text-muted">Comparativo entre receitas mensais recorrentes e receitas pontuais.</p><div style="height:390px"><canvas id="receitasChart"></canvas></div></div>
+
+<div class="card-app">
+    <h5 class="fw-bold">Receitas por mês</h5>
+    <p class="text-muted">Comparativo entre receitas mensais recorrentes e receitas pontuais.</p>
+    <div style="height: 390px;"><canvas id="receitasChart"></canvas></div>
+</div>
+
+<script id="grafico-producao-labels" type="application/json">{{ grafico_producao_labels|tojson }}</script>
+<script id="grafico-producao-valores" type="application/json">{{ grafico_producao_valores|tojson }}</script>
+<script id="grafico-clientes-labels" type="application/json">{{ grafico_clientes_labels|tojson }}</script>
+<script id="grafico-clientes-valores" type="application/json">{{ grafico_clientes_valores|tojson }}</script>
+<script id="grafico-receitas-labels" type="application/json">{{ grafico_receitas_labels|tojson }}</script>
+<script id="grafico-receitas-mensais" type="application/json">{{ grafico_receitas_mensais|tojson }}</script>
+<script id="grafico-receitas-pontuais" type="application/json">{{ grafico_receitas_pontuais|tojson }}</script>
 {% endblock %}
+
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const moeda = value => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(value || 0);
-new Chart(document.getElementById('producaoChart'),{type:'bar',data:{labels:{{grafico_producao_labels|tojson}},datasets:[{label:'Serviços',data:{{grafico_producao_valores|tojson}},backgroundColor:'#e90034',borderRadius:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
-new Chart(document.getElementById('clientesChart'),{type:'doughnut',data:{labels:{{grafico_clientes_labels|tojson}},datasets:[{data:{{grafico_clientes_valores|tojson}},backgroundColor:['#111111','#e90034','#8a8a8a'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}});
-new Chart(document.getElementById('receitasChart'),{type:'line',data:{labels:{{grafico_receitas_labels|tojson}},datasets:[{label:'Mensal',data:{{grafico_receitas_mensais|tojson}},borderColor:'#e90034',backgroundColor:'rgba(233,0,52,.10)',tension:.35,borderWidth:3,pointRadius:4},{label:'Pontual',data:{{grafico_receitas_pontuais|tojson}},borderColor:'#111111',backgroundColor:'rgba(0,0,0,.08)',tension:.35,borderWidth:3,pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+moeda(ctx.raw)}}},scales:{y:{beginAtZero:true,ticks:{callback:moeda}}}}});
+    function lerJson(id) {
+        const elemento = document.getElementById(id);
+        return elemento ? JSON.parse(elemento.textContent) : [];
+    }
+
+    function moeda(valor) {
+        return new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+        }).format(Number(valor) || 0);
+    }
+
+    const producaoLabels = lerJson('grafico-producao-labels');
+    const producaoValores = lerJson('grafico-producao-valores');
+    const clientesLabels = lerJson('grafico-clientes-labels');
+    const clientesValores = lerJson('grafico-clientes-valores');
+    const receitasLabels = lerJson('grafico-receitas-labels');
+    const receitasMensais = lerJson('grafico-receitas-mensais');
+    const receitasPontuais = lerJson('grafico-receitas-pontuais');
+
+    new Chart(document.getElementById('producaoChart'), {
+        type: 'bar',
+        data: {
+            labels: producaoLabels,
+            datasets: [{
+                label: 'Serviços',
+                data: producaoValores,
+                backgroundColor: '#e90034',
+                borderRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+        }
+    });
+
+    new Chart(document.getElementById('clientesChart'), {
+        type: 'doughnut',
+        data: {
+            labels: clientesLabels,
+            datasets: [{
+                data: clientesValores,
+                backgroundColor: ['#111111', '#e90034', '#8a8a8a'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+
+    new Chart(document.getElementById('receitasChart'), {
+        type: 'line',
+        data: {
+            labels: receitasLabels,
+            datasets: [
+                {
+                    label: 'Mensal',
+                    data: receitasMensais,
+                    borderColor: '#e90034',
+                    backgroundColor: 'rgba(233, 0, 52, 0.10)',
+                    tension: 0.35,
+                    borderWidth: 3,
+                    pointRadius: 4
+                },
+                {
+                    label: 'Pontual',
+                    data: receitasPontuais,
+                    borderColor: '#111111',
+                    backgroundColor: 'rgba(0, 0, 0, 0.08)',
+                    tension: 0.35,
+                    borderWidth: 3,
+                    pointRadius: 4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { position: 'bottom' },
+                tooltip: {
+                    callbacks: {
+                        label: contexto => `${contexto.dataset.label}: ${moeda(contexto.raw)}`
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { callback: moeda }
+                }
+            }
+        }
+    });
 </script>
 {% endblock %}
