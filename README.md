@@ -28,3 +28,15 @@ As tabelas antigas permanecem no Supabase e não são apagadas.
 - Produção: kanban Alinhamento > Materiais > Produção > Ajustes > Entrega.
 - Cada produção vincula um cliente a um ou mais produtos.
 - Cada produto vinculado recebe preço próprio e periodicidade Pontual ou Mensal.
+
+## Atualização de julho de 2026
+
+Após publicar esta versão, execute uma vez, localmente, apontando o `.env` para o mesmo Supabase:
+
+```powershell
+py scripts/init_db.py
+```
+
+O comando adiciona os campos de data da produção, cria a tabela `producao_checklist` e gera o checklist inicial das produções já existentes. Nenhum cliente, produto ou serviço é apagado.
+
+A logo deve permanecer em `public/logo.png`. O Flask publica essa pasta pelo endereço `/static/logo.png` tanto localmente quanto na Vercel.

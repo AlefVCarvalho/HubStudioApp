@@ -28,7 +28,12 @@ class Produto(db.Model):
     nome = db.Column(db.String(150), nullable=False)
     descricao = db.Column(db.Text)
     tags = db.Column(db.String(255))
-    etapas = db.relationship("ProdutoEtapa", back_populates="produto", cascade="all, delete-orphan", order_by="ProdutoEtapa.ordem")
+    etapas = db.relationship(
+        "ProdutoEtapa",
+        back_populates="produto",
+        cascade="all, delete-orphan",
+        order_by="ProdutoEtapa.ordem",
+    )
     itens_producao = db.relationship("ProducaoProduto", back_populates="produto")
 
 
@@ -65,16 +70,28 @@ class Producao(db.Model):
     descricao = db.Column(db.Text)
     etapa = db.Column(db.String(30), nullable=False, default="alinhamento")
     observacoes = db.Column(db.Text)
+    criado_em = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    concluido_em = db.Column(db.DateTime)
     cliente = db.relationship("Contato", back_populates="producoes")
     produtos = db.relationship("ProducaoProduto", back_populates="producao", cascade="all, delete-orphan")
+    checklist = db.relationship(
+        "ProducaoChecklist",
+        back_populates="producao",
+        cascade="all, delete-orphan",
+        order_by="ProducaoChecklist.ordem",
+    )
 
     @property
-    def valor_mensal(self):
-        return sum(item.valor or 0 for item in self.produtos if item.periodicidade == "mensal")
+    def produto_item(self):
+        return self.produtos[0] if self.produtos else None
 
     @property
-    def valor_pontual(self):
-        return sum(item.valor or 0 for item in self.produtos if item.periodicidade == "pontual")
+    def valor(self):
+        return self.produto_item.valor if self.produto_item else 0
+
+    @property
+    def periodicidade(self):
+        return self.produto_item.periodicidade if self.produto_item else "pontual"
 
 
 class ProducaoProduto(db.Model):
@@ -86,3 +103,14 @@ class ProducaoProduto(db.Model):
     periodicidade = db.Column(db.String(20), nullable=False, default="pontual")
     producao = db.relationship("Producao", back_populates="produtos")
     produto = db.relationship("Produto", back_populates="itens_producao")
+
+
+class ProducaoChecklist(db.Model):
+    __tablename__ = "producao_checklist"
+    id = db.Column(db.Integer, primary_key=True)
+    producao_id = db.Column(db.Integer, db.ForeignKey("producoes.id", ondelete="CASCADE"), nullable=False)
+    produto_etapa_id = db.Column(db.Integer, db.ForeignKey("produto_etapas.id", ondelete="SET NULL"))
+    descricao = db.Column(db.String(255), nullable=False)
+    ordem = db.Column(db.Integer, nullable=False, default=0)
+    concluida = db.Column(db.Boolean, nullable=False, default=False)
+    producao = db.relationship("Producao", back_populates="checklist")

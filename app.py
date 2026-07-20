@@ -1,4 +1,5 @@
 import os
+from decimal import Decimal, InvalidOperation
 from flask import Flask, redirect, url_for, jsonify
 from flask_login import LoginManager, current_user
 from dotenv import load_dotenv
@@ -10,6 +11,15 @@ def normalizar_database_url(url):
     if url and url.startswith("postgres://"):
         return url.replace("postgres://", "postgresql://", 1)
     return url
+
+
+def formatar_brl(valor):
+    try:
+        numero = Decimal(str(valor or 0))
+    except (InvalidOperation, ValueError, TypeError):
+        numero = Decimal("0")
+    formatado = f"{numero:,.2f}"
+    return "R$ " + formatado.replace(",", "X").replace(".", ",").replace("X", ".")
 
 
 def create_app():
@@ -29,6 +39,7 @@ def create_app():
         SESSION_COOKIE_SECURE=os.getenv("SESSION_COOKIE_SECURE", "false").lower() == "true",
     )
     db.init_app(app)
+    app.jinja_env.filters["brl"] = formatar_brl
 
     login_manager = LoginManager(app)
     login_manager.login_view = "auth.login"
